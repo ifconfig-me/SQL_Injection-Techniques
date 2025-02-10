@@ -20,7 +20,7 @@ Trigger errors to analyze the error messages returned, which often reveal the da
 
 - **Generic Error Payload**
   ```sql
-  ' OR 1=1 --
+  ' OR 1=1 -- 
   ```
   - Check for different error message structures.
 
